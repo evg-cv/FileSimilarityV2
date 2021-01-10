@@ -1,10 +1,14 @@
+import spacy
+
 from pycorenlp import StanfordCoreNLP
+from spacy.lemmatizer import VERB
 from settings import POS_TAGSET
 
 
 class SemanticAnalyzer:
     def __init__(self):
         self.nlp = StanfordCoreNLP('http://localhost:9000')
+        self.lemmatizer = spacy.load('en_core_web_sm').vocab.morphology.lemmatizer
 
     @staticmethod
     def get_tagged_words(tag_result):
@@ -38,16 +42,38 @@ class SemanticAnalyzer:
                 subject_results = []
                 verb_results = []
                 tag_index = 2
+                passive_ret = False
                 while "VP" not in structured_tags[tag_index]:
                     subject_results.append(structured_tags[tag_index])
                     tag_index += 1
                 while "NP" not in structured_tags[tag_index]:
-                    verb_results.append(structured_tags[tag_index])
+                    vbn_word = ""
+                    if "VBN" in structured_tags[tag_index]:
+                        passive_ret = True
+                        vbn_word_index = structured_tags[tag_index].index("VBN") + 4
+                        vbn_character = structured_tags[tag_index][vbn_word_index]
+                        while vbn_character != ")":
+                            vbn_word += vbn_character
+                            vbn_word_index += 1
+                            vbn_character = structured_tags[tag_index][vbn_word_index]
+                        structured_tags[tag_index] = \
+                            structured_tags[tag_index].replace(vbn_word, self.lemmatizer(vbn_word, VERB)[0])
+                    if passive_ret:
+                        if vbn_word != "":
+                            verb_results = []
+                        if not verb_results:
+                            verb_results = self.lemmatizer(vbn_word, VERB)
+                    else:
+                        verb_results.append(structured_tags[tag_index])
                     tag_index += 1
                 object_results = structured_tags[tag_index:]
-                sentence_pos_result["subject"] = self.get_tagged_words(tag_result=subject_results)
+                if not passive_ret:
+                    sentence_pos_result["subject"] = self.get_tagged_words(tag_result=subject_results)
+                    sentence_pos_result["object"] = self.get_tagged_words(tag_result=object_results)
+                else:
+                    sentence_pos_result["subject"] = self.get_tagged_words(tag_result=object_results)
+                    sentence_pos_result["object"] = self.get_tagged_words(tag_result=subject_results)
                 sentence_pos_result["verb"] = self.get_tagged_words(tag_result=verb_results)
-                sentence_pos_result["object"] = self.get_tagged_words(tag_result=object_results)
 
             doc_pos_result.append(sentence_pos_result)
 
@@ -55,4 +81,4 @@ class SemanticAnalyzer:
 
 
 if __name__ == '__main__':
-    SemanticAnalyzer().extract_pos_tags(text="The small cat ate the dog's food. dog ate cat.")
+    SemanticAnalyzer().extract_pos_tags(text="Dog's food was eaten by cat")

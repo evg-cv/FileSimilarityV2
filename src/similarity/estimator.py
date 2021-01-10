@@ -1,105 +1,59 @@
 import os
 import pandas as pd
-import ntpath
 import numpy as np
+import ntpath
 
 from sklearn.metrics.pairwise import cosine_similarity
+from operator import add
 from src.feature.extractor import GFeatureExtractor
+from src.semantic.pos_tagging import SemanticAnalyzer
 from utils.folder_file_manager import log_print
-from settings import INPUT_EXCEL_PATH, SIMILARITY_NUMBER, SIMILARITY_THRESH, OUTPUT_DIR
+from settings import COEFFICIENT_A, COEFFICIENT_B, COEFFICIENT_C, COEFFICIENT_D, COEFFICIENT_E, COEFFICIENT_F
 
 
-class DescriptionSimilarity:
+class SemanticSimilarity:
     def __init__(self):
         self.feature_extractor = GFeatureExtractor()
+        self.semantic_analyzer = SemanticAnalyzer()
 
-    def run(self):
-        control_similarities = []
-        risk_similarities = []
-        control_similarity_values = []
-        similarity_rations = []
-        risk_similarity_values = []
-        avg_similarity_values = []
+    @staticmethod
+    def analyze_modeling(value):
+        return COEFFICIENT_A + COEFFICIENT_B * value + COEFFICIENT_C * value ** 2 + COEFFICIENT_D * value ** 3 + \
+               COEFFICIENT_E * value ** 4 + COEFFICIENT_F * value ** 5
 
-        file_name = ntpath.basename(INPUT_EXCEL_PATH).replace(".xlsx", "")
-        output_file_path = os.path.join(OUTPUT_DIR, f"{file_name}_result.csv")
+    def extract_feature_from_tags(self, tag_result):
+        tag_feature = np.zeros(900)
+        for sent_result in tag_result:
+            sent_feature = np.concatenate((self.feature_extractor.get_feature_token_words(text=sent_result["subject"]),
+                                           self.feature_extractor.get_feature_token_words(text=sent_result["verb"]),
+                                           self.feature_extractor.get_feature_token_words(text=sent_result["object"])),
+                                          axis=0)
+            tag_feature = list(map(add, tag_feature, sent_feature))
 
-        input_df = pd.read_excel(INPUT_EXCEL_PATH)
-        risk_descriptions = input_df["Risk Description"].values.tolist()
-        control_descriptions = input_df["Control Description"].values.tolist()
-        control_features = []
-        for c_des in control_descriptions:
-            try:
-                c_des_feature = self.feature_extractor.get_feature_token_words(text=c_des)
-            except Exception as e:
-                c_des_feature = None
-                log_print(e)
-            control_features.append(c_des_feature)
+        return tag_feature
 
-        for i, c_i_feature in enumerate(control_features):
-            i_similarity = []
-            if c_i_feature is not None:
-                for j, c_j_feature in enumerate(control_features):
-                    if j == i or c_j_feature is None:
-                        continue
-                    i_j_similarity = cosine_similarity([c_i_feature], [c_j_feature])
-                    if i_j_similarity[0][0] >= SIMILARITY_THRESH:
-                        i_similarity.append([j, i_j_similarity[0][0]])
+    def run(self, csv_file_path):
 
-            if not i_similarity:
-                control_similarities.append("NA")
-                risk_similarities.append("NA")
-                control_similarity_values.append("NA")
-                similarity_rations.append("NA")
-                risk_similarity_values.append("NA")
-                avg_similarity_values.append("NA")
-            else:
-                sorted_similarity = sorted(i_similarity, key=lambda k: k[1], reverse=True)[:SIMILARITY_NUMBER]
-                similarity_indices = np.array(sorted_similarity)[:, 0].astype(np.int)
-                init_controls = ""
-                init_risks = ""
-                init_control_scores = ""
-                init_rations = ""
-                init_risk_scores = ""
-                init_avg_scores = ""
-                for m, s_index in enumerate(similarity_indices):
-                    risk_des_feature = self.feature_extractor.get_feature_token_words(text=risk_descriptions[i])
-                    risk_similar_feature = \
-                        self.feature_extractor.get_feature_token_words(text=risk_descriptions[s_index])
-                    risk_similarity = cosine_similarity([risk_des_feature], [risk_similar_feature])
-                    init_controls += control_descriptions[s_index] + ","
-                    init_risks += str(risk_descriptions[s_index]) + ","
-                    init_control_scores += str(sorted_similarity[m][1]) + ","
-                    init_risk_scores += str(risk_similarity[0][0]) + ","
-                    init_avg_scores += str(0.5 * (risk_similarity[0][0] + sorted_similarity[m][1])) + ","
-                    if sorted_similarity[m][1] >= 0.75:
-                        init_rations += "high" + ","
-                    elif 0.5 < sorted_similarity[m][1] < 0.75:
-                        init_rations += "medium" + ","
-                    else:
-                        init_rations += "low" + ","
-                control_similarities.append(init_controls[:-1])
-                risk_similarities.append(init_risks[:-1])
-                control_similarity_values.append(init_control_scores[:-1])
-                similarity_rations.append(init_rations[:-1])
-                risk_similarity_values.append(init_risk_scores)
-                avg_similarity_values.append(init_avg_scores)
+        input_df = pd.read_csv(csv_file_path)
+        master_key = input_df["Master"][0]
+        master_key_tags = self.semantic_analyzer.extract_pos_tags(text=master_key)
+        master_feature = self.extract_feature_from_tags(tag_result=master_key_tags)
+        statements = input_df["Text"].values.tolist()
+        if statements:
+            for s_des in statements:
+                try:
+                    s_des_tags = self.semantic_analyzer.extract_pos_tags(text=s_des)
+                    s_des_feature = self.extract_feature_from_tags(tag_result=s_des_tags)
+                    proximity = cosine_similarity([master_feature], [s_des_feature])
+                    print(f"{s_des}: {self.analyze_modeling(value=float(proximity[0][0]))}")
+                except Exception as e:
+                    log_print(e)
 
-            print(f"Processed Control Description {i + 1} rows")
-
-        input_df["Similar Sentences"] = control_similarities
-        input_df["Risk Sentences"] = risk_similarities
-        input_df["Similar Values"] = control_similarity_values
-        input_df["Similar Rations"] = similarity_rations
-        input_df["Risk Values"] = risk_similarity_values
-        input_df["Average Values"] = avg_similarity_values
-
-        input_df.to_csv(output_file_path, index=True, header=True, mode="w")
-
-        print(f"[INFO] Successfully saved in {output_file_path}")
+        else:
+            print("[INFO] There are not any statements to estimate in")
 
         return
 
 
 if __name__ == '__main__':
-    DescriptionSimilarity().run()
+    SemanticSimilarity().run(csv_file_path="/media/main/Data/Task/DescriptionSimilarityV2/test.csv")

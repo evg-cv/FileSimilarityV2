@@ -2,7 +2,8 @@ import gensim
 
 from operator import add
 from nltk.data import find
-from src.preprocess.tokenizer import TextPreprocessor
+from spacy.lang.en.stop_words import STOP_WORDS
+# from src.preprocess.tokenizer import TextPreprocessor
 from utils.folder_file_manager import log_print
 from settings import MODEL_PATH
 
@@ -11,7 +12,7 @@ class GFeatureExtractor:
     def __init__(self):
         word2vec_sample = str(find(MODEL_PATH))
         self.model = gensim.models.KeyedVectors.load_word2vec_format(word2vec_sample, binary=False)
-        self.text_processor = TextPreprocessor()
+        # self.text_processor = TextPreprocessor()
 
     @staticmethod
     def calculate_text_feature(word_features):
@@ -22,17 +23,17 @@ class GFeatureExtractor:
         return text_feature
 
     def get_feature_token_words(self, text):
-        sentences = self.text_processor.tokenize_sentence(text=text)
+        # sentences = self.text_processor.tokenize_sentence(text=text)
         text_features = []
 
-        for sentence in sentences:
-            token_words = self.text_processor.tokenize_word(sample=sentence.text)
-            for t_word in token_words:
-                try:
-                    word_feature = self.model[t_word]
-                    text_features.append(word_feature)
-                except Exception as e:
-                    log_print(e)
+        for t_word in text:
+            if t_word.lower() in ['the', 'and', 'are', 'a']:
+                continue
+            try:
+                word_feature = self.model[t_word.lower()]
+                text_features.append(word_feature)
+            except Exception as e:
+                log_print(e)
 
         text_feature = self.calculate_text_feature(word_features=text_features)
 
