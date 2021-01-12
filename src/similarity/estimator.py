@@ -1,14 +1,11 @@
-import os
-import pandas as pd
 import numpy as np
-import ntpath
 
 from sklearn.metrics.pairwise import cosine_similarity
 from operator import add
 from src.feature.extractor import GFeatureExtractor
 from src.semantic.pos_tagging import SemanticAnalyzer
 from utils.folder_file_manager import log_print
-from settings import COEFFICIENT_A, COEFFICIENT_B, COEFFICIENT_C, COEFFICIENT_D, COEFFICIENT_E, COEFFICIENT_F
+from utils.const import COEFFICIENT_A, COEFFICIENT_B, COEFFICIENT_C, COEFFICIENT_D, COEFFICIENT_E, COEFFICIENT_F
 
 
 class SemanticSimilarity:
@@ -32,28 +29,39 @@ class SemanticSimilarity:
 
         return tag_feature
 
-    def run(self, csv_file_path):
+    def run(self, master_keys, text_iterations):
 
-        input_df = pd.read_csv(csv_file_path)
-        master_key = input_df["Master"][0]
-        master_key_tags = self.semantic_analyzer.extract_pos_tags(text=master_key)
-        master_feature = self.extract_feature_from_tags(tag_result=master_key_tags)
-        statements = input_df["Text"].values.tolist()
-        if statements:
-            for s_des in statements:
+        print(f"[INFO] Step4 NLP Text Semantic Similarity Estimation Processing...")
+
+        result = {"Text/Master": [f"Text Iteration {i + 1}" for i in range(len(text_iterations))]}
+        text_features = []
+        for t_iteration in text_iterations:
+            t_iter_tags = self.semantic_analyzer.extract_pos_tags(text=t_iteration)
+            t_iter_feature = self.extract_feature_from_tags(tag_result=t_iter_tags)
+            text_features.append(t_iter_feature)
+
+        for i, master_key in enumerate(master_keys):
+            master_key_tags = self.semantic_analyzer.extract_pos_tags(text=master_key)
+            master_feature = self.extract_feature_from_tags(tag_result=master_key_tags)
+            result[f"Master Key {i + 1}"] = []
+            for t_feature in text_features:
                 try:
-                    s_des_tags = self.semantic_analyzer.extract_pos_tags(text=s_des)
-                    s_des_feature = self.extract_feature_from_tags(tag_result=s_des_tags)
-                    proximity = cosine_similarity([master_feature], [s_des_feature])
-                    print(f"{s_des}: {self.analyze_modeling(value=float(proximity[0][0]))}")
+                    proximity = cosine_similarity([master_feature], [t_feature])
+                    result[f"Master Key {i + 1}"].append(self.analyze_modeling(value=float(proximity[0][0])))
                 except Exception as e:
                     log_print(e)
 
-        else:
-            print("[INFO] There are not any statements to estimate in")
+        print(f"[INFO] Step4 NLP Text Semantic Similarity Estimation Finished...")
 
-        return
+        return result
 
 
 if __name__ == '__main__':
-    SemanticSimilarity().run(csv_file_path="/media/main/Data/Task/DescriptionSimilarityV2/test.csv")
+    import pandas as pd
+    from utils.tool import check_text
+    from settings import SIMILARITY_FILE_PATH
+
+    master_keys_ = check_text(str_list=pd.read_csv(SIMILARITY_FILE_PATH)["Master Key"].values.tolist())
+    text_iterations_ = check_text(str_list=pd.read_csv(SIMILARITY_FILE_PATH)["Text Iteration"].values.tolist())
+
+    SemanticSimilarity().run(master_keys=master_keys_, text_iterations=text_iterations_)

@@ -2,7 +2,7 @@ import spacy
 
 from pycorenlp import StanfordCoreNLP
 from spacy.lemmatizer import VERB
-from settings import POS_TAGSET
+from utils.const import POS_TAGSET
 
 
 class SemanticAnalyzer:
@@ -66,6 +66,9 @@ class SemanticAnalyzer:
                     else:
                         verb_results.append(structured_tags[tag_index])
                     tag_index += 1
+                    if tag_index == len(structured_tags):
+                        tag_index -= 1
+                        break
                 object_results = structured_tags[tag_index:]
                 if not passive_ret:
                     sentence_pos_result["subject"] = self.get_tagged_words(tag_result=subject_results)
@@ -81,4 +84,4 @@ class SemanticAnalyzer:
 
 
 if __name__ == '__main__':
-    SemanticAnalyzer().extract_pos_tags(text="Dog's food was eaten by cat")
+    SemanticAnalyzer().extract_pos_tags(text="")

@@ -1,9 +1,8 @@
 import gensim
+import numpy as np
 
 from operator import add
 from nltk.data import find
-from spacy.lang.en.stop_words import STOP_WORDS
-# from src.preprocess.tokenizer import TextPreprocessor
 from utils.folder_file_manager import log_print
 from settings import MODEL_PATH
 
@@ -12,7 +11,6 @@ class GFeatureExtractor:
     def __init__(self):
         word2vec_sample = str(find(MODEL_PATH))
         self.model = gensim.models.KeyedVectors.load_word2vec_format(word2vec_sample, binary=False)
-        # self.text_processor = TextPreprocessor()
 
     @staticmethod
     def calculate_text_feature(word_features):
@@ -35,7 +33,11 @@ class GFeatureExtractor:
             except Exception as e:
                 log_print(e)
 
-        text_feature = self.calculate_text_feature(word_features=text_features)
+        try:
+            text_feature = self.calculate_text_feature(word_features=text_features)
+        except Exception as e:
+            log_print(e)
+            text_feature = np.zeros(900)
 
         return text_feature
 
