@@ -85,7 +85,7 @@ class ParagraphEmbed:
         :return:
         """
 
-        f = OrderedDict()
+        # f = OrderedDict()
 
         # Infer paragraph vector for data sample
         vec = self.doc2vec_model.infer_vector(data, steps=self.infer_epoch, alpha=self.start_alpha)
@@ -113,13 +113,9 @@ class ParagraphEmbed:
 
 
 if __name__ == '__main__':
-    # _data = ['301-4098-4896', '13-238743']
     paragraph = ParagraphEmbed()
-    master_vec = paragraph.infer_paragraph_embeddings_features(data=["cat ate the dog's food"])
-    text_iters = ["Dog's food ate by cat", "Dog ate the cat as its food", "Dog ate the cat", "Cat ate the Dog",
-                  "Dog ate the Cat's food", "cat and Dog ate their food", "Cat ate the food of Dog",
-                  "Dog ate the food of cat", "cat ate food", "Dog ate food", "cat eats food", "dog eats food",
-                  "food eats", "Dog eats", "Cat eats"]
+    master_vec = paragraph.infer_paragraph_embeddings_features(data=[])
+    text_iters = []
     for t_iter in text_iters:
         t_vec = paragraph.infer_paragraph_embeddings_features(data=[t_iter])
         similarity = cosine_similarity([master_vec], [t_vec])
