@@ -1,3 +1,4 @@
+from sklearn.metrics.pairwise import cosine_similarity
 from src.feature.extractor import GFeatureExtractor
 from src.feature.tokenizer import TextPreprocessor
 
@@ -40,8 +41,28 @@ class KeywordSearcher:
 
         return not_available_keywords
 
-    def extract_synonyms(self, search_words):
-        pass
+    def extract_synonyms(self, search_words, text_iterations):
+        print(f"[INFO] Step3 Synonyms of Keywords Processing...")
+        text_words = []
+        text_word_features = []
+        for t_iteration in text_iterations:
+            text_words += self.preprocess_text(text=t_iteration, master_ret=True)
+        for t_word in text_words:
+            text_word_features.append(self.feature_extractor.get_feature_token_words(text=t_word))
+        for s_word in search_words:
+            if len(s_word.split(" ")) > 1:
+                self.result["Synonyms"].append(f"{s_word}: Not Word!")
+                continue
+            s_word_feature = self.feature_extractor.get_feature_token_words(text=s_word)
+            synonym_score = []
+            for t_word, t_word_feature in zip(text_words, text_word_features):
+                proximity = cosine_similarity([s_word_feature], [t_word_feature])
+                synonym_score.append(proximity[0][0])
+            self.result["Synonyms"].append(f"{s_word}: {text_words[synonym_score.index(max(synonym_score))]}!")
+
+        print(f"[INFO] Step3 Synonyms of Keywords Finished...")
+
+        return
 
     def extract_beyond_master(self, master_keys, text_iterations):
         print(f"[INFO] Step3 Content beyond MasterKey Processing...")
@@ -62,7 +83,7 @@ class KeywordSearcher:
 
     def run(self, keywords, master_keys, text_iterations):
         not_available_keywords = self.search_availability_keyword(keywords=keywords, text_iterations=text_iterations)
-        self.extract_synonyms(search_words=not_available_keywords)
+        self.extract_synonyms(search_words=not_available_keywords, text_iterations=text_iterations)
         self.extract_beyond_master(master_keys=master_keys, text_iterations=text_iterations)
 
         return self.result
@@ -77,4 +98,4 @@ if __name__ == '__main__':
     master_keys_ = check_text(str_list=pd.read_csv(SIMILARITY_FILE_PATH)["Master Key"].values.tolist())
     text_iterations_ = check_text(str_list=pd.read_csv(SIMILARITY_FILE_PATH)["Text Iteration"].values.tolist())
 
-    KeywordSearcher().extract_beyond_master(master_keys=master_keys_, text_iterations=text_iterations_)
+    KeywordSearcher().run(keywords=keywords_, text_iterations=text_iterations_, master_keys=master_keys_)
