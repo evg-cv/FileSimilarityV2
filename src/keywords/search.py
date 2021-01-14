@@ -42,7 +42,7 @@ class KeywordSearcher:
         return not_available_keywords
 
     def extract_synonyms(self, search_words, text_iterations):
-        print(f"[INFO] Step3 Synonyms of Keywords Processing...")
+        print(f"[INFO] Step2 Synonyms of Keywords Processing...")
         text_words = []
         text_word_features = []
         for t_iteration in text_iterations:
@@ -60,7 +60,7 @@ class KeywordSearcher:
                 synonym_score.append(proximity[0][0])
             self.result["Synonyms"].append(f"{s_word}: {text_words[synonym_score.index(max(synonym_score))]}!")
 
-        print(f"[INFO] Step3 Synonyms of Keywords Finished...")
+        print(f"[INFO] Step2 Synonyms of Keywords Finished...")
 
         return
 
