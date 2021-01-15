@@ -15,8 +15,8 @@ class SemanticSimilarity:
 
     @staticmethod
     def analyze_modeling(value):
-        return COEFFICIENT_A + COEFFICIENT_B * value + COEFFICIENT_C * value ** 2 + COEFFICIENT_D * value ** 3 + \
-               COEFFICIENT_E * value ** 4 + COEFFICIENT_F * value ** 5
+        return round((COEFFICIENT_A + COEFFICIENT_B * value + COEFFICIENT_C * value ** 2 +
+                      COEFFICIENT_D * value ** 3 + COEFFICIENT_E * value ** 4 + COEFFICIENT_F * value ** 5) * 100, 2)
 
     def extract_feature_from_tags(self, tag_result):
         tag_feature = np.zeros(900)
