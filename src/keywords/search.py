@@ -31,11 +31,11 @@ class KeywordSearcher:
             for regenerated_keyword, keyword in zip(regenerated_keywords, keywords):
                 if regenerated_keyword in regenerated_text and keyword not in available_keywords:
                     available_keywords.append(keyword)
-            self.result[f"Founded Keyword in Iteration{i}"] = available_keywords
-            not_available_keywords[f"Iteration{i}"] = []
+            self.result[f"Founded Keyword in Iteration{i + 1}"] = available_keywords
+            not_available_keywords[f"Iteration{i + 1}"] = []
             for keyword, regenerated_keyword in zip(keywords, regenerated_keywords):
                 if keyword not in available_keywords:
-                    not_available_keywords[f"Iteration{i}"].append([regenerated_keyword, keyword])
+                    not_available_keywords[f"Iteration{i + 1}"].append([regenerated_keyword, keyword])
 
         print(f"[INFO] Step1 Availability of Keywords Finished ")
 
@@ -45,21 +45,21 @@ class KeywordSearcher:
         print(f"[INFO] Step2 Synonyms of Keywords Processing...")
         for i, t_iteration in enumerate(text_iterations):
             text_word_features = []
-            self.result[f"Synonyms in Iteration{i}"] = []
+            self.result[f"Synonyms in Iteration{i + 1}"] = []
             text_words = self.preprocess_text(text=t_iteration, master_ret=True)
             for t_word in text_words:
                 text_word_features.append(self.feature_extractor.get_feature_token_words(text=t_word))
-            for s_word, s_key_word in search_words[f"Iteration{i}"]:
+            for s_word, s_key_word in search_words[f"Iteration{i + 1}"]:
                 if len(s_word.split(" ")) > 1:
-                    self.result[f"Synonyms in Iteration{i}"].append(f"{s_key_word}: Not Word!")
+                    self.result[f"Synonyms in Iteration{i + 1}"].append(f"{s_key_word}: Not Word!")
                     continue
                 s_word_feature = self.feature_extractor.get_feature_token_words(text=s_word)
                 synonym_score = []
                 for t_word, t_word_feature in zip(text_words, text_word_features):
                     proximity = cosine_similarity([s_word_feature], [t_word_feature])
                     synonym_score.append(proximity[0][0])
-                self.result[f"Synonyms in Iteration{i}"].append(
-                    f"{s_word}: {text_words[synonym_score.index(max(synonym_score))]}!")
+                self.result[f"Synonyms in Iteration{i + 1}"].append(
+                    f"{s_word}: {text_words[synonym_score.index(max(synonym_score))]}")
 
         print(f"[INFO] Step2 Synonyms of Keywords Finished...")
 
@@ -72,11 +72,11 @@ class KeywordSearcher:
             master_key_words += self.preprocess_text(text=master_key, master_ret=True)
         for i, t_iteration in enumerate(text_iterations):
             t_iteration_words = self.preprocess_text(text=t_iteration, master_ret=True)
-            self.result[f"Words not in {i + 1}th iteration"] = []
+            self.result[f"Words not in Iteration{i + 1}"] = []
             for t_i_word in t_iteration_words:
                 if t_i_word not in master_key_words and \
-                        t_i_word not in self.result[f"Words not in {i + 1}th iteration"]:
-                    self.result[f"Words not in Iteration {i + 1}"].append(t_i_word)
+                        t_i_word not in self.result[f"Words not in Iteration{i + 1}"]:
+                    self.result[f"Words not in Iteration{i + 1}"].append(t_i_word)
 
         print(f"[INFO] Step3 Content beyond MasterKey Finished...")
 
