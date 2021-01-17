@@ -47,7 +47,8 @@ class SemanticSimilarity:
             for t_feature in text_features:
                 try:
                     proximity = cosine_similarity([master_feature], [t_feature])
-                    result[f"Master Key {i + 1}"].append(self.analyze_modeling(value=float(proximity[0][0])))
+                    # value = self.analyze_modeling(value=proximity[0][0])
+                    result[f"Master Key {i + 1}"].append(round(proximity[0][0] * 100, 2))
                 except Exception as e:
                     log_print(e)
 
