@@ -20,7 +20,7 @@ class GFeatureExtractor:
 
         return text_feature
 
-    def get_feature_token_words(self, text):
+    def get_feature_token_words(self, text, word_ret=False):
         # sentences = self.text_processor.tokenize_sentence(text=text)
         text_features = []
 
@@ -37,7 +37,10 @@ class GFeatureExtractor:
             text_feature = self.calculate_text_feature(word_features=text_features)
         except Exception as e:
             log_print(e)
-            text_feature = np.zeros(900)
+            if not word_ret:
+                text_feature = np.zeros(900)
+            else:
+                text_feature = None
 
         return text_feature
 

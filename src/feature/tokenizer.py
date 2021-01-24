@@ -26,7 +26,7 @@ class TextPreprocessor:
         else:
             tokens = [tok for tok in tokens if tok not in ["a", "an", "the"]]
         tokens = [tok for tok in tokens if tok not in symbols]
-        tokens = [tok for tok in tokens if tok != ""]
+        tokens = [tok for tok in tokens if tok != "" and not tok.isdigit()]
 
         return tokens
 

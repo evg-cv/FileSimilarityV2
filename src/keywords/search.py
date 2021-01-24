@@ -47,15 +47,26 @@ class KeywordSearcher:
             text_word_features = []
             self.result[f"Synonyms in Iteration{i + 1}"] = []
             text_words = self.preprocess_text(text=t_iteration, master_ret=True)
-            for t_word in text_words:
-                text_word_features.append(self.feature_extractor.get_feature_token_words(text=t_word))
+            pop_key = []
+            for j, t_word in enumerate(text_words):
+                t_feature = self.feature_extractor.get_feature_token_words(text=[t_word], word_ret=True)
+                if t_feature is not None:
+                    text_word_features.append(t_feature)
+                else:
+                    pop_key.append(j)
+            modified_key_words = []
+            for j, t_word in enumerate(text_words):
+                if j not in pop_key:
+                    modified_key_words.append(t_word)
             for s_word, s_key_word in search_words[f"Iteration{i + 1}"]:
                 if len(s_word.split(" ")) > 1:
                     self.result[f"Synonyms in Iteration{i + 1}"].append(f"{s_key_word}: Not Word!")
                     continue
-                s_word_feature = self.feature_extractor.get_feature_token_words(text=s_word)
+                s_word_feature = self.feature_extractor.get_feature_token_words(text=[s_word], word_ret=True)
+                if s_word_feature is None:
+                    continue
                 synonym_score = []
-                for t_word, t_word_feature in zip(text_words, text_word_features):
+                for t_word, t_word_feature in zip(modified_key_words, text_word_features):
                     proximity = cosine_similarity([s_word_feature], [t_word_feature])
                     synonym_score.append(proximity[0][0])
                 self.result[f"Synonyms in Iteration{i + 1}"].append(
